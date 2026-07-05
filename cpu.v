@@ -54,6 +54,9 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     wire        branch_ID;
     wire        jump_ID;
     wire [1:0]  alu_op_coarse_ID;
+    wire        is_ecall_ID;
+    wire        is_ebreak_ID;
+    wire        is_fence_ID;
 
     // IDEX //
     reg [31:0] IDEX_pc;
@@ -76,6 +79,9 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     reg [2:0]  IDEX_funct3;
     reg        IDEX_funct7_5;
     reg [6:0]  IDEX_opcode;
+    reg IDEX_is_ecall;
+    reg IDEX_is_ebreak;
+    reg IDEX_is_fence;
 
     // EX STAGE //
 
@@ -124,6 +130,9 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     reg        EXMEM_mem_write;
     reg [1:0]  EXMEM_mem_to_reg;
     reg [2:0]  EXMEM_funct3;
+    reg        EXMEM_is_ecall;
+    reg        EXMEM_is_ebreak;
+    reg        EXMEM_is_fence;
 
     // MEMWB //
     reg [31:0] MEMWB_pc_plus4;
@@ -132,6 +141,9 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     reg [4:0]  MEMWB_rd;
     reg        MEMWB_reg_write;
     reg [1:0]  MEMWB_mem_to_reg;
+    reg        MEMWB_is_ecall;
+    reg        MEMWB_is_ebreak;
+    reg        MEMWB_is_fence;
 
     // WB STAGE //
 
@@ -149,8 +161,8 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
         assign alu_a_EX     = IDEX_alu_src_a ? IDEX_pc : alu_a_pre_EX;
 
         assign alu_b_pre_EX = (fwd_b == 2'b01) ? EXMEM_alu_result :
-                            (fwd_b == 2'b10) ? wb_data          :
-                                                IDEX_rs2_data;
+                              (fwd_b == 2'b10) ? wb_data          :
+                                                 IDEX_rs2_data;
 
         assign alu_b_EX     = IDEX_alu_src ? IDEX_imm : alu_b_pre_EX;
 
@@ -197,6 +209,9 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
             IDEX_funct3        <= 3'b0;
             IDEX_funct7_5      <= 1'b0;
             IDEX_opcode        <= 7'b0;
+            IDEX_is_ebreak     <= 1'b0;
+            IDEX_is_ecall      <= 1'b0;
+            IDEX_is_fence      <= 1'b0;
         end else begin
             IDEX_pc            <= IFID_pc;
             IDEX_pc_plus4      <= IFID_pc_plus4;
@@ -218,6 +233,9 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
             IDEX_funct3        <= funct3_ID;
             IDEX_funct7_5      <= funct7_5_ID;
             IDEX_opcode        <= opcode_ID;
+            IDEX_is_ecall      <= is_ecall_ID;
+            IDEX_is_ebreak     <= is_ebreak_ID;
+            IDEX_is_fence      <= is_fence_ID;            
         end
     end
 
@@ -234,6 +252,9 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
             EXMEM_mem_write  <= 1'b0;
             EXMEM_mem_to_reg <= 2'b0;
             EXMEM_funct3     <= 3'b0;
+            EXMEM_is_ecall   <= 1'b0;
+            EXMEM_is_ebreak  <= 1'b0;
+            EXMEM_is_fence   <= 1'b0;
         end else begin
             EXMEM_pc_plus4   <= IDEX_pc_plus4;
             EXMEM_alu_result <= alu_result_EX;
@@ -244,6 +265,9 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
             EXMEM_mem_write  <= IDEX_mem_write;
             EXMEM_mem_to_reg <= IDEX_mem_to_reg;
             EXMEM_funct3     <= IDEX_funct3;
+            EXMEM_is_ecall  <= IDEX_is_ecall;
+            EXMEM_is_ebreak <= IDEX_is_ebreak;
+            EXMEM_is_fence  <= IDEX_is_fence;
         end
     end
 
@@ -257,13 +281,19 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
             MEMWB_rd         <= 5'b0;
             MEMWB_reg_write  <= 1'b0;
             MEMWB_mem_to_reg <= 2'b0;
-        end else begin
+            MEMWB_is_ecall   <= 1'b0;
+            MEMWB_is_ebreak  <= 1'b0;
+            MEMWB_is_fence   <= 1'b0;
+        end else begin 
             MEMWB_pc_plus4   <= EXMEM_pc_plus4;
             MEMWB_alu_result <= EXMEM_alu_result;
             MEMWB_mem_data   <= mem_read_data_MEM;
             MEMWB_rd         <= EXMEM_rd;
             MEMWB_reg_write  <= EXMEM_reg_write;
             MEMWB_mem_to_reg <= EXMEM_mem_to_reg;
+            MEMWB_is_ecall   <= EXMEM_is_ecall;
+            MEMWB_is_ebreak  <= EXMEM_is_ebreak;
+            MEMWB_is_fence   <= EXMEM_is_fence;  
         end
     end
 
@@ -295,6 +325,7 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
 
     main_control_unit ctrl (
         .opcode    (opcode_ID),
+        .instr     (IFID_instr[31:20]),
         .RegWrite  (reg_write_ID),
         .ALUSrc    (alu_src_ID),
         .ALUSrcA   (alu_src_a_ID),
@@ -303,7 +334,10 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
         .MemtoReg  (mem_to_reg_ID),
         .Branch    (branch_ID),
         .Jump      (jump_ID),
-        .ALUOp     (alu_op_coarse_ID)
+        .ALUOp     (alu_op_coarse_ID),
+        .is_ecall  (is_ecall_ID),
+        .is_ebreak (is_ebreak_ID),
+        .is_fence  (is_fence_ID)
     );
 
     register_file rf (
