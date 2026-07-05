@@ -27,36 +27,157 @@ _start:
 # TEST 1 : BASIC ALU
 ############################################################
 
+lui  x1 ,0x12345        # x1 = 0x12345000
+lui  x2, 0x12345        # x2 = 0x12345000
+bne  x1 ,x2, FAIL1      # idk how to test for lui
 
-############################################################
-# Sub Test 1: Register - Immediate
-############################################################
+auipc x2 ,0             # x2 = PC of this instruction
+auipc x3 ,0             # x3 = PC of this instruction
+addi  x20,x2 ,4         # x20= PC of x2 + 4 = x3
+bne   x3 ,x20,FAIL1     # x2 + 4 (should be) = x3
 
-addi  x1,x0,10  # x1 = 10
-slti  x2,x0,-1  # x2 = 0    (0<-1) ?
-sltiu x3,x0,-1  # x3 = 1    (0< 1) ?
-ori   x4,x1,5   # x4 = 15
-andi  x5,x1,5   # x5 = 0
-xori  x6,x1,6   # x6 = 12
+addi x1, x0, 1          # x1 = 1
+add  x4 ,x0 ,4          # x4 = 4
+addi x20,x0 ,4          # x20 = 4
+bne  x4 ,x20,FAIL1
 
+sub  x5 ,x4 ,x1          # x5 = 3
+addi x20,x0 ,3          # x20 = 3
+bne  x5 ,x20,FAIL1
 
-addi x20,x0,10  # x20 = 10
-bne x1,x20,FAIL1
+# XOR / OR / AND and immediate forms #
 
-addi x20,x0,0  # x20 = 0
-bne x2,x20,FAIL1
+xor  x6 ,x4 ,x5         # x6 = 7
+addi x20,x0 ,7          # x20= 7
+bne  x6 ,x20,FAIL1  
 
-addi x20,x0,1   # x20 = 1
-bne x3,x20,FAIL1
+or   x7 ,x4 ,x5         # x7 = 7
+addi x20,x0 ,7          # x20= 7
+bne  x7 ,x20,FAIL1
 
-addi x20,x0,15  # x20 = 15
-bne x4,x20,FAIL1
+and  x8 ,x4 ,x5         # x8 = 0
+bne  x8 ,x0,FAIL1
 
-addi x20,x0,0   # x20 = 0
-bne x5,x20,FAIL1
+xori x9 ,x4 ,3          # x9 = 7
+addi x20,x0 ,7          # x20= 7
+bne  x9 ,x20,FAIL1
 
-addi x20,x0,12  # x20 = 12
-bne x6,x20,FAIL1
+ori  x10,x4 ,3          # x10= 7
+addi x20,x0 ,7          # x20= 7
+bne  x10,x20,FAIL1
+
+andi x11,x4 ,3         # x11= 0
+bne  x11,x0,FAIL1
+
+# SLL / SRL / SRA and immediate forms #
+
+addi x6, x0, 1
+addi x7, x0, 3
+sll  x1 ,x6 ,x7         # x1 = 1<<3 = 8
+addi x20,x0 ,8          # x20= 8
+bne  x1 ,x20,FAIL1
+
+slli x2,x6 ,3           # x2 = 1<<3 = 8
+bne  x2,x20,FAIL1
+
+srl  x3 ,x20,x7         # x3 = 8>>3 = 1
+addi x20,x0 ,1          # x20= 1
+bne  x3 ,x20,FAIL1
+
+srli x4 ,x2 ,3          # x4 = 8>>3 = 1
+addi x20,x0 ,1          # x20= 1
+bne  x4 ,x20,FAIL1
+
+addi x1 ,x0,-16         # x1 = -16
+addi x2 ,x0,4           # x2 = 4
+sra  x5 ,x1,x2          # x5 = -16 >>> 4 = -1
+addi x20,x0,-1          # x20 = -1
+bne  x3 ,x4,FAIL1
+
+srai x6 ,x1,2           # -16 >>> 2 = -4
+addi x20,x0,-4          # x20 = -4
+bne  x3 ,x4,FAIL1
+
+# SLT / SLTU and immediate forms #
+
+addi x1, x0, -1
+addi x2, x0, 1
+
+slt  x3 ,x1 ,x2         # x3 = 1 (signed: -1 < 1)
+addi x20,x0 ,1          # x20 = 1
+bne  x3 ,x20,FAIL1
+
+sltu x4 ,x1 ,x2         # x4 = 0 (unsigned: 0xffffffff < 1)
+addi x20,x0 ,0          # x20 = 0
+bne  x4 ,x20,FAIL1
+
+slti x5 ,x1 ,1          # x5 = 1 (signed: -1 < 1)
+addi x20,x0 ,1          # x20 = 1
+bne  x5 ,x20,FAIL1
+
+sltiu x6, x1, 1         # x6 = 0 (unsigned: 0xffffffff < 1)
+addi  x20, x0, 0        # x20 = 0
+bne   x6, x20, FAIL1
+
+# BEQ / BNE / BLTU / BGEU #
+
+addi x1, x0, -1
+addi x2, x0, -1
+addi x3, x0, 1
+
+beq  x1, x3, FAIL1
+bne  x1, x2, FAIL1
+
+addi x1, x0, -1
+addi x2, x0, 1
+
+bltu x1, x3, FAIL1
+bgeu x3, x1, FAIL9
+
+# JAL
+
+addi x1, x0, 0
+addi x2, x0, 0
+jal  x10, T10_TARGET
+addi x2, x0, 99               # must be skipped
+T10_TARGET:
+bne  x2, x0, FAIL1           # x2 should still be 0
+
+# SB, SH, SW, LB, LH, LW, LBU, LHU
+la x10, data
+
+# Store full word and load it back.
+lui  x1, 0x12345
+addi x1, x1, 0x678            # x1 = 0x12345678
+sw   x1, 0(x10)
+lw   x2, 0(x10)
+bne  x1, x2, FAIL1
+
+# Test sign-extending LB and zero-extending LBU.
+addi x1, x0, -128             # low byte = 0x80
+sb   x1, 4(x10)
+lb   x2, 4(x10)
+addi x20, x0, -128
+bne  x2, x20, FAIL1
+
+lbu  x2, 4(x10)
+addi x20, x0, 128
+bne  x2, x20, FAIL1
+
+# Store halfword 0x8001, test sign-extending LH and zero-extending LHU.
+lui  x1, 0x00008
+addi x1, x1, 1                # x1 = 0x00008001
+sh   x1, 8(x10)
+
+lh   x2, 8(x10)               # expected 0xffff8001
+lui  x3, 0xffff8
+addi x3, x3, 1
+bne  x2, x3, FAIL1
+
+lhu  x2, 8(x10)               # expected 0x00008001
+lui  x3, 0x00008
+addi x3, x3, 1
+bne  x2, x3, FAIL1
 
 ############################################################
 # TEST 2 : EX -> EX FORWARDING
@@ -110,6 +231,8 @@ bne x5,x20,FAIL4
 
 la x10,data     # x10 = pointer to value 20
 
+addi x1, x0, 20
+sw x1, 0(x10)
 lw x1,0(x10)    # x1 = 20
 add x2,x1,x1    # x2 = 40
 
