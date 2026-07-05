@@ -76,6 +76,8 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     reg [2:0]  IDEX_funct3;
     reg        IDEX_funct7_5;
     reg [6:0]  IDEX_opcode;
+    reg IDEX_is_ecall;
+    reg IDEX_is_ebreak;
 
     // EX STAGE //
 
@@ -197,6 +199,8 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
             IDEX_funct3        <= 3'b0;
             IDEX_funct7_5      <= 1'b0;
             IDEX_opcode        <= 7'b0;
+            IDEX_is_ebreak     <= 1'b0;
+            IDEX_is_ecall      <= 1'b0;
         end else begin
             IDEX_pc            <= IFID_pc;
             IDEX_pc_plus4      <= IFID_pc_plus4;
@@ -218,6 +222,8 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
             IDEX_funct3        <= funct3_ID;
             IDEX_funct7_5      <= funct7_5_ID;
             IDEX_opcode        <= opcode_ID;
+            IDEX_is_ebreak     <= is_ecall_ID;
+            IDEX_is_ecall      <= is_ebreak_ID;            
         end
     end
 
@@ -303,7 +309,9 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
         .MemtoReg  (mem_to_reg_ID),
         .Branch    (branch_ID),
         .Jump      (jump_ID),
-        .ALUOp     (alu_op_coarse_ID)
+        .ALUOp     (alu_op_coarse_ID),
+        .is_ecall  (is_ecall_ID),
+        .is_ebreak (is_ebreak_ID)
     );
 
     register_file rf (
