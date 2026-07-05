@@ -15,10 +15,24 @@ module main_control_unit (
     output reg is_ebreak,       // Control signal to indicate env breaking  // curently ecall, ebreak, fence are treaded are nops but their control signals exist
     output reg is_fence         // Control signal to indicate fencing
 );
+
+    // LOCAL PARAMETERS //
+    localparam OP_R_TYPE = 7'b0110011;
+    localparam OP_I_TYPE = 7'b0010011;
+    localparam OP_LOAD   = 7'b0000011;
+    localparam OP_STORE  = 7'b0100011;
+    localparam OP_BRANCH = 7'b1100011;
+    localparam OP_JUMP   = 7'b1101111;
+    localparam OP_JALR   = 7'b1100111;
+    localparam OP_LUI    = 7'b0110111;
+    localparam OP_AUIPC  = 7'b0010111;
+    localparam OP_SYSTEM = 7'b1110011;
+    localparam OP_FENCE  = 7'b0001111;
+
     always @(*) begin
        
         case (opcode)
-            7'b0110011: begin       // R-type instructions
+            OP_R_TYPE: begin       // R-type instructions
                 RegWrite = 1'b1; 
                 ALUSrc = 1'b0;
                 MemRead = 1'b0;   
@@ -32,7 +46,7 @@ module main_control_unit (
                 is_ebreak = 1'b0;
                 is_fence  = 1'b0;
                 end
-            7'b0010011: begin       // I-type instructions (e.g., immediate arithmetic)
+            OP_I_TYPE: begin       // I-type instructions (e.g., immediate arithmetic)
                 RegWrite = 1'b1;  
                 ALUSrc = 1'b1;    
                 MemRead = 1'b0;   
@@ -46,7 +60,7 @@ module main_control_unit (
                 is_ebreak = 1'b0;
                 is_fence  = 1'b0;
             end
-            7'b0000011: begin       // Load instructions (e.g., lw)
+            OP_LOAD: begin       // Load instructions (e.g., lw)
                 RegWrite = 1'b1;  
                 ALUSrc = 1'b1;    
                 MemRead = 1'b1;   
@@ -60,7 +74,7 @@ module main_control_unit (
                 is_ebreak = 1'b0;
                 is_fence  = 1'b0;
             end
-            7'b0100011: begin        // Store instructions (e.g., sw)
+            OP_STORE: begin        // Store instructions (e.g., sw)
                 RegWrite = 1'b0;  
                 ALUSrc = 1'b1;    
                 MemRead = 1'b0;   
@@ -74,7 +88,7 @@ module main_control_unit (
                 is_ebreak = 1'b0;
                 is_fence  = 1'b0;
             end
-            7'b1100011: begin          // Branch instructions (e.g., beq)
+            OP_BRANCH: begin          // Branch instructions (e.g., beq)
                 RegWrite = 1'b0;  
                 ALUSrc = 1'b0;    
                 MemRead = 1'b0;   
@@ -88,7 +102,7 @@ module main_control_unit (
                 is_ebreak = 1'b0;
                 is_fence  = 1'b0;
             end
-            7'b1101111: begin           // Jump instructions (e.g., jal)
+            OP_JUMP: begin           // Jump instructions (e.g., jal)
                 RegWrite = 1'b1;  
                 ALUSrc = 1'b0;    
                 MemRead = 1'b0;   
@@ -102,7 +116,7 @@ module main_control_unit (
                 is_ebreak = 1'b0;
                 is_fence  = 1'b0;
             end
-            7'b1100111: begin           // jalr instructions
+            OP_JALR: begin           // jalr instructions
                 RegWrite = 1'b1;  
                 ALUSrc = 1'b1;    
                 MemRead = 1'b0;   
@@ -116,7 +130,7 @@ module main_control_unit (
                 is_ebreak = 1'b0;
                 is_fence  = 1'b0;
             end
-            7'b0110111: begin           // LUI instructions
+            OP_LUI: begin           // LUI instructions
                 RegWrite = 1'b1;  
                 ALUSrc = 1'b1;    
                 MemRead = 1'b0;   
@@ -130,7 +144,7 @@ module main_control_unit (
                 is_ebreak = 1'b0;
                 is_fence  = 1'b0;
             end
-            7'b0010111: begin           // AUIPC instructions
+            OP_AUIPC: begin           // AUIPC instructions
                 RegWrite = 1'b1;  
                 ALUSrc = 1'b1;    
                 MemRead = 1'b0;   
@@ -144,7 +158,7 @@ module main_control_unit (
                 is_ebreak = 1'b0;
                 is_fence  = 1'b0;
             end
-            7'b1110011: begin // ECALL / EBREAK
+            OP_SYSTEM: begin // ECALL / EBREAK
                 RegWrite  = 1'b0;
                 ALUSrc    = 1'b0;
                 ALUSrcA   = 1'b0;
@@ -158,7 +172,7 @@ module main_control_unit (
                 is_ebreak = (instr == 12'b000000000001);
                 is_fence  = 1'b0;
             end
-            7'b0001111: begin // FENCE
+            OP_FENCE: begin // FENCE
                 RegWrite  = 1'b0;
                 ALUSrc    = 1'b0;
                 ALUSrcA   = 1'b0;
