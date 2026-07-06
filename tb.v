@@ -2,7 +2,6 @@
 // After x31 gets the value 1 we enter an inf loop. Thats why we only print x31.
 
 `timescale 1ns/1ps
-`include "cpu.v"
 module tb;
 
 // localparam IMEM_BASE = 0x00000000;

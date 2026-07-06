@@ -1,13 +1,4 @@
 `timescale 1ns / 1ps
-`include "alu.v"
-`include "alu_control.v"
-`include "control.v"
-`include "immGen.v"
-`include "memory.v"
-`include "PC.v"
-`include "RegFile.v"
-`include "forward.v"
-`include "hazard.v"
 
 module CPU (
     input clock,
