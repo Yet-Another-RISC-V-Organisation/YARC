@@ -159,14 +159,14 @@ module main_control_unit (
                 is_fence  = 1'b0;
             end
             OP_SYSTEM: begin // ECALL / EBREAK
-                RegWrite  = 1'b0;
-                ALUSrc    = 1'b0;
-                ALUSrcA   = 1'b0;
-                MemRead   = 1'b0;
-                MemWrite  = 1'b0;
-                MemtoReg  = 2'b0;
-                Branch    = 1'b0;
-                Jump      = 1'b0;
+                RegWrite  =  1'b0;
+                ALUSrc    =  1'b0;
+                ALUSrcA   =  1'b0;
+                MemRead   =  1'b0;
+                MemWrite  =  1'b0;
+                MemtoReg  = 2'b00;
+                Branch    =  1'b0;
+                Jump      =  1'b0;
                 ALUOp     = 2'b00;
                 is_ecall  = (instr == 12'b0);
                 is_ebreak = (instr == 12'b000000000001);

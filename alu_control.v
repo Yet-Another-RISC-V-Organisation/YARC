@@ -3,6 +3,7 @@ module alu_control (
     input [1:0] ALUOp,           // Control signal from the main control unit to determine the ALU operation
     input [2:0] funct3,          // funct3 field from the instruction (used for R-type and I-type instructions)
     input       funct7_5,        // funct7 field from the instruction (used for R-type instructions)
+    
     output reg [3:0] alu_op      // Control signal to select the specific ALU operation
 );
     always @(*) begin
