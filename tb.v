@@ -39,12 +39,15 @@ integer i;
 initial begin
     $dumpfile("cpu.vcd");
     $dumpvars(0, tb.dut);
+
+    `ifdef DUMP_MEM
     for (i = 0; i < 4096; i = i + 1) begin
         $dumpvars(0, tb.dut.imem.memory[i]);
     end
     for (i = 0; i < 32; i = i + 1) begin
         $dumpvars(0, tb.dut.rf.regFile[i]);
     end
+    `endif
 end
 
 // Stop Simulation
@@ -59,14 +62,5 @@ initial begin
     $display("Simulation timeout.");
     $finish;
 end
-
-// // Register Monitor
-// always @(posedge clock) begin
-//     $display(
-//         "PC=%h x31=%h",
-//         dut.pc,
-//         dut.rf.regFile[31]
-//     );
-// end
 
 endmodule
