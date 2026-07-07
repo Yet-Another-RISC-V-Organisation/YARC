@@ -1,22 +1,23 @@
 module Program_counter (
-    input clock,                                    // Clock signal
-    input resetn,                                   // Active-low reset signal  
-    input stall,                                    // freeze PC during load-use hazard                      
-    output reg [31:0] pc,                           // Program counter output
-    input [31:0] branch_address,                    // Branch target address
-    input branch_taken                              // Signal indicating whether a branch is taken
+    input clock_i,                                    // Clock signal
+    input reset_ni,                                   // Active-low reset signal  
+    input stall_i,                                    // freeze PC during load-use hazard                      
+    input [31:0] branch_address_i,                    // Branch target address
+    input branch_taken_i,                              // Signal indicating whether a branch is taken
+
+    output reg [31:0] pc_o                           // Program counter output
 );
 
-    always @(posedge clock or negedge resetn) begin
-        if (!resetn) begin
-            pc <= 32'b0;
-        end else if (!stall) begin  // only update if not stalled
-            if (branch_taken)
-                pc <= branch_address;
+    always @(posedge clock_i or negedge reset_ni) begin
+        if (!reset_ni) begin
+            pc_o <= 32'b0;
+        end else if (!stall_i) begin  // only update if not stalled
+            if (branch_taken_i)
+                pc_o <= branch_address_i;
             else
-                pc <= pc + 4;
+                pc_o <= pc_o + 4;
         end
-        // stall: hold current pc, do nothing
+        // stall: hold current pc_o, do nothing
     end
 
 endmodule

@@ -300,104 +300,101 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
         // MODULES //
 
     Program_counter pc_reg (
-        .clock          (clock),
-        .resetn         (resetn),
-        .stall          (stall),
-        .pc             (pc),
-        .branch_address (next_pc),
-        .branch_taken   (branch_taken)
+        .clock_i          (clock),
+        .reset_ni         (resetn),
+        .stall_i          (stall),
+        .branch_address_i (next_pc),
+        .branch_taken_i   (branch_taken),
+        .pc_o             (pc)
     );
 
-    memory #(.DEPTH(4096)) imem (
-        .clock      (clock),
-        .address    (pc - IMEM_BASE),
-        .write_data (32'b0),
-        .funct3     (3'b010),
-        .mem_write  (1'b0),
-        .mem_read   (1'b1),
-        .read_data  (instr_IF)
+    memory #(.Depth(4096)) imem (
+        .clock_i      (clock),
+        .address_i    (pc - IMEM_BASE),
+        .write_data_i (32'b0),
+        .funct3_i     (3'b010),
+        .mem_write_i  (1'b0),
+        .mem_read_i   (1'b1),
+        .read_data_o  (instr_IF)
     );
 
     immidiateGen ig (
-        .instruction (IFID_instr),
-        .immidiate   (imm_ID)
+        .instruction_i (IFID_instr),
+        .immidiate_o   (imm_ID)
     );
 
-    main_control_unit ctrl (
-        .opcode    (opcode_ID),
-        .instr     (IFID_instr[31:20]),
-        .RegWrite  (reg_write_ID),
-        .ALUSrc    (alu_src_ID),
-        .ALUSrcA   (alu_src_a_ID),
-        .MemRead   (mem_read_ID),
-        .MemWrite  (mem_write_ID),
-        .MemtoReg  (mem_to_reg_ID),
-        .Branch    (branch_ID),
-        .Jump      (jump_ID),
-        .ALUOp     (alu_op_coarse_ID),
-        .is_ecall  (is_ecall_ID),
-        .is_ebreak (is_ebreak_ID),
-        .is_fence  (is_fence_ID)
+    main_control_unit ctrl ( 
+        .opcode_i    (opcode_ID),
+        .instr_i     (IFID_instr[31:20]),
+        .reg_write_o  (reg_write_ID),
+        .ALU_src_o    (alu_src_ID),
+        .ALU_srcA_o   (alu_src_a_ID),
+        .mem_read_o   (mem_read_ID),
+        .mem_write_o  (mem_write_ID),
+        .mem_to_reg_o  (mem_to_reg_ID),
+        .branch_o    (branch_ID),
+        .jump_o      (jump_ID),
+        .ALU_op_o     (alu_op_coarse_ID),
     );
 
     register_file rf (
-        .clock      (clock),
-        .resetn     (resetn),
-        .read_addr1 (rs1_ID),
-        .read_addr2 (rs2_ID),
-        .write_addr (MEMWB_rd),
-        .write_data (wb_data),
-        .we         (MEMWB_reg_write),
-        .read_data1 (rs1_data_ID),
-        .read_data2 (rs2_data_ID)
+        .clock_i      (clock),
+        .reset_ni     (resetn),
+        .read_addr1_i (rs1_ID),
+        .read_addr2_i (rs2_ID),
+        .write_addr_i (MEMWB_rd),
+        .write_data_i (wb_data),
+        .we_i         (MEMWB_reg_write),
+        .read_data1_o (rs1_data_ID),
+        .read_data2_o (rs2_data_ID)
     );
 
     hazard haz (
-        .rs1_ID      (rs1_ID),
-        .rs2_ID      (rs2_ID),
-        .rd_EX       (IDEX_rd),
-        .mem_read_EX (IDEX_mem_read),
-        .stall       (stall)
+        .rs1_ID_i      (rs1_ID),
+        .rs2_ID_i      (rs2_ID),
+        .rd_EX_i       (IDEX_rd),
+        .mem_read_EX_i (IDEX_mem_read),
+        .stall_o       (stall)
     );
 
     forward fwd_unit (
-        .rs1_EX        (IDEX_rs1),
-        .rs2_EX        (IDEX_rs2),
-        .rd_MEM        (EXMEM_rd),
-        .reg_write_MEM (EXMEM_reg_write),
-        .rd_WB         (MEMWB_rd),
-        .reg_write_WB  (MEMWB_reg_write),
-        .fwd_a         (fwd_a),
-        .fwd_b         (fwd_b)
+        .rs1_EX_i        (IDEX_rs1),
+        .rs2_EX_i        (IDEX_rs2),
+        .rd_MEM_i        (EXMEM_rd),
+        .reg_write_MEM_i (EXMEM_reg_write),
+        .rd_WB_i         (MEMWB_rd),
+        .reg_write_WB_i  (MEMWB_reg_write),
+        .fwd_a_o         (fwd_a),
+        .fwd_b_o         (fwd_b)
     );
 
     alu_control alu_ctrl (
-        .opcode   (IDEX_opcode),
-        .ALUOp    (IDEX_alu_op_coarse),
-        .funct3   (IDEX_funct3),
-        .funct7_5 (IDEX_funct7_5),
-        .alu_op   (alu_op_EX)
+        .opcode_i   (IDEX_opcode),
+        .ALUOp_i    (IDEX_alu_op_coarse),
+        .funct3_i   (IDEX_funct3),
+        .funct7_5_i (IDEX_funct7_5),
+        .ALU_op_o   (alu_op_EX)
     );
 
     ALU alu (
-        .input1   (alu_a_EX),
-        .input2   (alu_b_EX),
-        .alu_op   (alu_op_EX),
-        .result   (alu_result_EX),
-        .zero     (zero_EX),
-        .lt       (lt_EX),
-        .ltu      (ltu_EX),
-        .negative ()
+        .input1_i   (alu_a_EX),
+        .input2_i   (alu_b_EX),
+        .ALU_op_i   (alu_op_EX),
+        .result_o   (alu_result_EX),
+        .zero_o     (zero_EX),
+        .lt_o       (lt_EX),
+        .ltu_o      (ltu_EX),
+        .negative_o ()
     );
 
-    memory #(.DEPTH(4096)) dmem (
-        .clock      (clock),
-        .address    (EXMEM_alu_result - DMEM_BASE),
-        .write_data (EXMEM_rs2_data),
-        .funct3     (EXMEM_funct3),
-        .mem_write  (EXMEM_mem_write),
-        .mem_read   (EXMEM_mem_read),
-        .read_data  (mem_read_data_MEM)
+    memory #(.Depth(4096)) dmem (
+        .clock_i      (clock),
+        .address_i    (EXMEM_alu_result - DMEM_BASE),
+        .write_data_i (EXMEM_rs2_data),
+        .funct3_i     (EXMEM_funct3),
+        .mem_write_i  (EXMEM_mem_write),
+        .mem_read_i   (EXMEM_mem_read),
+        .read_data_o  (mem_read_data_MEM)
     );
 
 
