@@ -1,5 +1,6 @@
 // Forward Unit:
 // Currently consists of forward from: EX/MEM, MEM/WB, None
+`timescale 1ns / 1ps
 
 module forward (
     input [4:0] rs1_EX,          // source registers of instruction in EX

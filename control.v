@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module main_control_unit (
     input [6:0] opcode,
     input [11:0] instr,

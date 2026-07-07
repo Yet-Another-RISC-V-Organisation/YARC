@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module alu_control (
     input [6:0] opcode,
     input [1:0] ALUOp,           // Control signal from the main control unit to determine the ALU operation

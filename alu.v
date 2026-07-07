@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module ALU (
     input [31:0] input1,        // First operand for the ALU operation
     input [31:0] input2,        // Second operand for the ALU operation

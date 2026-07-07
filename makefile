@@ -7,7 +7,8 @@ WAVE = surfer
 all:
 	$(CC) $(FLAGS) -o $(EXE) $(SRCS)
 	vvp $(EXE)
-	$(WAVE) tb_dumpfile.vcd waveform.gtkw
+	$(WAVE) cpu.vcd 
+	#if you're using surfer, make sure to save the state of the waveform for future runs!!
 
 clean:
 	rm -rf $(EXE)

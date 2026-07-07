@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module immidiateGen (
     input [31:0] instruction,   // The instruction from which to extract the immidiate value
     output reg [31:0] immidiate // immidiate output

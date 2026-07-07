@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module memory # (
     parameter DEPTH = 4096              // number of bytes 
 ) (                        

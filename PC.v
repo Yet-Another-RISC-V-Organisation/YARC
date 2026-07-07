@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module Program_counter (
     input clock,                                    // Clock signal
     input resetn,                                   // Active-low reset signal  

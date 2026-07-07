@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module hazard (
     input [4:0] rs1_ID,         // source registers of instruction currently in ID
     input [4:0] rs2_ID,
