@@ -11,7 +11,7 @@ reg clock;
 reg resetn;
 
 CPU dut (
-    .clock(clock),
+    .clock (clock),
     .resetn(resetn)
 );
 
