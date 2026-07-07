@@ -335,6 +335,9 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
         .branch_o    (branch_ID),
         .jump_o      (jump_ID),
         .ALU_op_o     (alu_op_coarse_ID),
+        .is_ecall_o  (is_ecall_ID),
+        .is_ebreak_o (is_ebreak_ID),
+        .is_fence_o  (is_fence_ID)
     );
 
     register_file rf (
