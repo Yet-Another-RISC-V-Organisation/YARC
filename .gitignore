@@ -2,3 +2,4 @@ build/
 a.out
 tb.out
 cpu.vcd
+dump.vcd
