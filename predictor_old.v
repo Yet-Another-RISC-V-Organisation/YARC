@@ -1,3 +1,4 @@
+//OBSOLETE!!!!!!!
 module predictor #(parameter SIZE=16)(
     input [31:0] instruction, //Instruction input
     input was_it_taken, //Feedback input, arrives later, needs extensive testing

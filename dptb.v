@@ -2,7 +2,7 @@
 `timescale 1ns/1ns
 module direction_predictor_tb;
 
-    reg clock=0;
+    reg clock = 0;
     reg resetn = 1;
     reg [31:0] pc = 0;
     reg [31:0] update_pc = 0;
