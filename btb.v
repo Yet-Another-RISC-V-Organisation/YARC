@@ -1,26 +1,25 @@
 module btb #(
-    parameter INDEX_BITS = 8;
-    parameter TAG_BITS  = 32 - INDEX_BITS;
+    parameter INDEX_BITS = 8,
+    parameter TAG_BITS  = 32 - INDEX_BITS
 )(
     input clock,
     input resetn,
     input [31:0] pc,
     input update_en,
     input [31:0] update_pc,
-    input [31:0] update_target;
+    input [31:0] update_target,
 
     output hit,
     output [31:0] target
 
-    
-)
+);
 
-    localparam MEM_SIZE = 1 << INDEX_BITS;
+    localparam MEM_SIZE = 1<<INDEX_BITS;
 
     //Memory Registers
-    reg valid [0:TABLE_SIZE-1];
-    reg [TAG_BITS-1:0] tag [0:TABLE_SIZE-1];
-    reg [31:0] targetmem [0:TABLE_SIZE-1];
+    reg valid [0:MEM_SIZE-1];
+    reg [TAG_BITS-1:0] tag [0:MEM_SIZE-1];
+    reg [31:0] targetmem [0:MEM_SIZE-1];
 
     //Hit Logic, Indexes/Tags
     wire [INDEX_BITS-1:0] read_index = pc[INDEX_BITS+1:2];
@@ -42,7 +41,7 @@ module btb #(
             end
         end
         else if (update_en) begin
-            valid[update_index] <=1;
+            valid[update_index] <= 1;
             tag[update_index] <= update_tag;
             targetmem[update_index] <= update_target;
         end

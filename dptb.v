@@ -17,7 +17,7 @@ module direction_predictor_tb;
 
     initial begin
     $dumpfile("dump.vcd");
-    $dumpvars(0, direction_predictor_tb.testunit);
+    $dumpvars;
     for(i=0; i<256; i=i+1)
         $dumpvars(0, direction_predictor_tb.testunit.prediction_table[i]);
     end
@@ -37,8 +37,10 @@ module direction_predictor_tb;
         #10 update_pc = 32'h100; update_en = 1; actual_taken = 0;
         #10 update_pc = 32'h100; update_en = 1; actual_taken = 0;
         #10;
-        if (prediction !== 0) $display("FAIL: expected taken after saturation (2)");
-        #10 update_en = 0;
+        if (prediction !== 0) $display("FAIL: expected not taken after saturation (2)");
+        #10 update_en = 0; actual_taken = 1;
+        #40;
+        if(prediction !== 0) $display("FAIL: update_en doesn't work");
         #10 pc = 32'h100;
 
         $display("DONE");
