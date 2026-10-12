@@ -35,7 +35,7 @@ module GeneralBranchTB();
     end
     end
     Program_counter dut1(clock, resetn, stall_i, branch_address_i, branch_taken, pc);
-    btb dut2(clock, resetn, pc, id_ex_is_branch, dummy_idex_pc, dummy_target, hit, target);
+    btb dut2(clock, resetn, pc, (id_ex_is_branch&&counter[2]), dummy_idex_pc, dummy_target, hit, target);
     direction_predictor dut3(clock, resetn, pc, prediction, id_ex_is_branch, dummy_idex_pc, counter[2]);
 
 
