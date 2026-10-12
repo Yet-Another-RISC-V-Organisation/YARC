@@ -3,7 +3,8 @@
 module main_control_unit (
     input [6:0] opcode,
     input [11:0] instr,
-
+    input [4:0]  funct5,
+    
     output reg RegWrite,        // Control signal to enable writing to the register file
     output reg ALUSrc,          // Control signal to select the second ALU operand (0 for register, 1 for immediate)
     output reg MemRead,         // Control signal to enable reading from memory
@@ -15,7 +16,10 @@ module main_control_unit (
     output reg ALUSrcA,         // Control signal to select the first ALU operand (0 for rs1, 1 for PC -- used by AUIPC)
     output reg is_ecall,        // Control signal to indicate env calling  
     output reg is_ebreak,       // Control signal to indicate env breaking  // curently ecall, ebreak, fence are treaded are nops but their control signals exist
-    output reg is_fence         // Control signal to indicate fencing
+    output reg is_fence,         // Control signal to indicate fencing
+    output reg use_fpu,         // route to FPU instead of ALU in EX
+    output reg fp_reg_write,    // write to float regfile
+    output reg fp_mem_write     // float store
 );
 
     // LOCAL PARAMETERS //
@@ -30,9 +34,16 @@ module main_control_unit (
     localparam OP_AUIPC  = 7'b0010111;
     localparam OP_SYSTEM = 7'b1110011;
     localparam OP_FENCE  = 7'b0001111;
+    localparam OP_FP       = 7'b1010011;  // fadd, fsub, fmul, fmv, fcvt
+    localparam OP_LOAD_FP  = 7'b0000111;  // flw
+    localparam OP_STORE_FP = 7'b0100111;  // fsw
 
     always @(*) begin
-       
+        
+        use_fpu      = 1'b0; // FP signals diffult to low, only needing to change on a fp instr
+        fp_reg_write = 1'b0;
+        fp_mem_write = 1'b0;
+        
         case (opcode)
             OP_R_TYPE: begin       // R-type instructions
                 RegWrite = 1'b1; 
@@ -188,6 +199,62 @@ module main_control_unit (
                 is_ebreak = 1'b0;
                 is_fence  = 1'b1;  
             end
+            OP_FP: begin
+                ALUSrc    = 1'b0;
+                ALUSrcA   = 1'b0;
+                MemRead   = 1'b0;
+                MemWrite  = 1'b0;
+                MemtoReg  = 2'b00;
+                Branch    = 1'b0;
+                Jump      = 1'b0;
+                ALUOp     = 2'b00;
+                is_ecall  = 1'b0;
+                is_ebreak = 1'b0;
+                is_fence  = 1'b0;
+                use_fpu      = 1'b1;
+                fp_mem_write = 1'b0;
+                if (funct5 == 5'b11100) begin // fmv.x.w: float bits -> integer regfile, not float
+                    RegWrite     = 1'b1;
+                    fp_reg_write = 1'b0;
+                end else begin
+                    RegWrite     = 1'b0;
+                    fp_reg_write = 1'b1;
+                end
+            end
+            OP_LOAD_FP: begin // flw: address = rs1 + imm (integer ALU), data goes to float regfile
+                RegWrite  = 1'b0;
+                ALUSrc    = 1'b1;   // imm for address calc
+                ALUSrcA   = 1'b0;
+                MemRead   = 1'b1;
+                MemWrite  = 1'b0;
+                MemtoReg  = 2'b11;  // new: memory -> float regfile
+                Branch    = 1'b0;
+                Jump      = 1'b0;
+                ALUOp     = 2'b00;  // ADD for address
+                is_ecall  = 1'b0;
+                is_ebreak = 1'b0;
+                is_fence  = 1'b0;
+                use_fpu      = 1'b0;
+                fp_reg_write = 1'b1;  // result goes to float regfile
+                fp_mem_write = 1'b0;
+            end
+            OP_STORE_FP: begin // fsw: address = rs1 + imm (integer ALU), data from float regfile
+                RegWrite  = 1'b0;
+                ALUSrc    = 1'b1;   // imm for address calc
+                ALUSrcA   = 1'b0;
+                MemRead   = 1'b0;
+                MemWrite  = 1'b0;   // integer store path off
+                MemtoReg  = 2'b00;
+                Branch    = 1'b0;
+                Jump      = 1'b0;
+                ALUOp     = 2'b00;  // ADD for address
+                is_ecall  = 1'b0;
+                is_ebreak = 1'b0;
+                is_fence  = 1'b0;
+                use_fpu      = 1'b0;
+                fp_reg_write = 1'b0;
+                fp_mem_write = 1'b1;  // float store enable
+            end
             default: begin              // This should NOT happen
                 RegWrite = 1'b0;  
                 ALUSrc = 1'b0;    
@@ -201,6 +268,9 @@ module main_control_unit (
                 is_ecall  = 1'b0;
                 is_ebreak = 1'b0;
                 is_fence  = 1'b0;
+                use_fpu      = 1'b0;
+                fp_reg_write = 1'b0;
+                fp_mem_write = 1'b0;
             end
         endcase 
         
