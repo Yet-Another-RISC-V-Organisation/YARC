@@ -1,7 +1,7 @@
 CC = iverilog
 FLAGS = -Wall -Winfloop
 EXE = tb.out
-SRCS = alu_control.v tb.v alu.v control.v cpu.v forward.v hazard.v immGen.v PC.v memory.v RegFile.v
+SRCS = alu_control.v tb.v alu.v control.v cpu.v forward.v hazard.v immGen.v PC.v memory.v RegFile.v btb.v direction_predictor.v
 WAVE = surfer
 ifeq ($(DUMP_MEM),1)
 DEFINES += -DDUMP_MEM
