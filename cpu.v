@@ -364,27 +364,27 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
         // MODULES //
 
     Program_counter pc_reg (
-        .clock          (clock),
-        .resetn         (resetn),
-        .stall          (stall),
-        .pc             (pc),
-        .branch_address (next_pc),
-        .branch_taken   (branch_taken)
+        .clock_i          (clock),
+        .reset_ni         (resetn),
+        .stall_i          (stall),
+        .branch_address_i (next_pc),
+        .branch_taken_i   (branch_taken),
+        .pc_o             (pc)
     );
 
-    memory #(.DEPTH(4096)) imem (
-        .clock      (clock),
-        .address    (pc - IMEM_BASE),
-        .write_data (32'b0),
-        .funct3     (3'b010),
-        .mem_write  (1'b0),
-        .mem_read   (1'b1),
-        .read_data  (instr_IF)
+    memory #(.Depth(4096)) imem (
+        .clock_i      (clock),
+        .address_i    (pc - IMEM_BASE),
+        .write_data_i (32'b0),
+        .funct3_i     (3'b010),
+        .mem_write_i  (1'b0),
+        .mem_read_i   (1'b1),
+        .read_data_o  (instr_IF)
     );
 
     immidiateGen ig (
-        .instruction (IFID_instr),
-        .immidiate   (imm_ID)
+        .instruction_i (IFID_instr),
+        .immidiate_o   (imm_ID)
     );
 
     main_control_unit ctrl (
@@ -409,15 +409,15 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     );
 
     register_file rf (
-        .clock      (clock),
-        .resetn     (resetn),
-        .read_addr1 (rs1_ID),
-        .read_addr2 (rs2_ID),
-        .write_addr (MEMWB_rd),
-        .write_data (wb_data),
-        .we         (MEMWB_reg_write),
-        .read_data1 (rs1_data_ID),
-        .read_data2 (rs2_data_ID)
+        .clock_i      (clock),
+        .reset_ni     (resetn),
+        .read_addr1_i (rs1_ID),
+        .read_addr2_i (rs2_ID),
+        .write_addr_i (MEMWB_rd),
+        .write_data_i (wb_data),
+        .we_i         (MEMWB_reg_write),
+        .read_data1_o (rs1_data_ID),
+        .read_data2_o (rs2_data_ID)
     );
 
     FloatingRegisterFile frf (
@@ -475,14 +475,14 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     );
 
     ALU alu (
-        .input1   (alu_a_EX),
-        .input2   (alu_b_EX),
-        .alu_op   (alu_op_EX),
-        .result   (alu_result_EX),
-        .zero     (zero_EX),
-        .lt       (lt_EX),
-        .ltu      (ltu_EX),
-        .negative ()
+        .input1_i   (alu_a_EX),
+        .input2_i   (alu_b_EX),
+        .ALU_op_i   (alu_op_EX),
+        .result_o   (alu_result_EX),
+        .zero_o     (zero_EX),
+        .lt_o       (lt_EX),
+        .ltu_o      (ltu_EX),
+        .negative_o ()
     );
 
     fpu fp_unit (

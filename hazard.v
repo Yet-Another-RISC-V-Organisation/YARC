@@ -26,7 +26,7 @@ module hazard (
                 (fp_rd_EX == fp_rs1_ID || fp_rd_EX == fp_rs2_ID))
             stall = 1'b1;
         else
-            stall = 1'b0;
+            stall_o = 1'b0;
     end
 
 endmodule
