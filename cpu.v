@@ -16,6 +16,8 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     wire        branch_taken;
     wire [31:0] next_pc;
     wire [31:0] pc;
+    wire [31:0] btb_target;
+    wire btb_hit;
 
     // IFID //
     reg [31:0] IFID_pc;
@@ -115,6 +117,7 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
 
     wire [31:0] fp_result_EX;
     wire        fp_invalid_EX;
+    wire        btb_update_en;
 
     wire [31:0] branch_target_EX = IDEX_pc + IDEX_imm;
     wire [31:0] jalr_target_EX   = (alu_a_pre_EX + IDEX_imm) & ~32'b1;
@@ -146,6 +149,7 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
 
     wire flush_IFID = branch_taken;
     wire flush_IDEX = branch_taken | stall;
+    assign btb_update_en = IDEX_branch && branch_taken;
 
     // EXMEM //
     reg [31:0] EXMEM_pc_plus4;
@@ -504,5 +508,17 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
         .mem_read   (EXMEM_mem_read),
         .read_data  (mem_read_data_MEM)
     );
+    btb #(.INDEX_BITS(8)) btbunit(
+        .clock  (clock),
+        .resetn (resetn),
+        .pc (pc),
+        .update_en (btb_update_en),
+        .update_pc (IDEX_pc),
+        .update_target (branch_taken),
+        .hit (btb_hit),
+        .target (btb_target) //add jlar later!!!
+    );
+
+
 
 endmodule
