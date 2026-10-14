@@ -61,9 +61,9 @@ module fpmul (
     wire [22:0] final_mant = rounded_mant[22:0];
     wire [9:0]  final_exp  = round_carry ? (norm_exp + 10'd1) : norm_exp;
 
-    wire exp_overflow  = (final_exp >= 10'd255);
-    wire exp_underflow = final_exp[9];
-
+    wire exp_underflow = final_exp[9] || (final_exp == 10'd0);
+    wire exp_overflow  = !final_exp[9] && (final_exp >= 10'd255);
+    
     always @(*) begin
         invalid = 1'b0;
         if      (any_nan || inf_x_zero)  begin result = CANONICAL_NAN;              invalid = 1'b1; end

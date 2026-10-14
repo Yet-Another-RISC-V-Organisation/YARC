@@ -55,14 +55,52 @@ module fpu (
     wire is_zero1   = (exp1 == 8'h00) && (mant1 == 23'b0);
     wire is_denorm1 = (exp1 == 8'h00) && (mant1 != 23'b0);
 
-    // fcvt.w.s
-    wire [7:0]  unbiased_exp   = exp1 - 8'd127;
-    wire [47:0] significand48  = {1'b1, mant1, 24'b0};
-    wire signed [8:0]  shift_amt = 9'd23 - {1'b0, unbiased_exp};
-    wire [47:0] shifted_mant   = (shift_amt >= 0) ? (significand48 >> shift_amt)
-                                                   : (significand48 << (-shift_amt));
-    wire [31:0] fcvt_w_s_result  = sign1 ? (~shifted_mant[31:0] + 1) : shifted_mant[31:0];
-    wire [31:0] fcvt_wu_s_result = shifted_mant[31:0];
+    // FCVT.W.S / FCVT.WU.S: float -> 32-bit integer, truncate toward zero.
+    // A normal float represents {1, mantissa} * 2^(exp1 - 150).
+    // Values with exp1 < 127 have magnitude < 1 and truncate to zero.
+    wire [31:0] cvt_float_sig32 = {8'b0, 1'b1, mant1};
+    wire [31:0] cvt_w_magnitude =
+        (exp1 < 8'd127) ? 32'd0 :
+        (exp1 < 8'd150) ? (cvt_float_sig32 >> (8'd150 - exp1)) :
+                            (cvt_float_sig32 << (exp1 - 8'd150));
+
+    reg [31:0] fcvt_w_result;
+    reg        fcvt_w_invalid;
+    always @(*) begin
+        fcvt_w_result  = 32'd0;
+        fcvt_w_invalid = 1'b0;
+
+        if (is_nan1) begin
+            // RISC-V saturation rule for NaN.
+            fcvt_w_result  = (funct3 == 3'b000) ? 32'h7FFFFFFF : 32'hFFFFFFFF;
+            fcvt_w_invalid = 1'b1;
+        end else if (is_inf1) begin
+            fcvt_w_result  = sign1 ? ((funct3 == 3'b000) ? 32'h80000000 : 32'd0)
+                                   : ((funct3 == 3'b000) ? 32'h7FFFFFFF : 32'hFFFFFFFF);
+            fcvt_w_invalid = 1'b1;
+        end else if (funct3 == 3'b000) begin
+            // Signed range: -2^31 through 2^31-1.
+            // -2^31 is exactly representable and is not an invalid conversion.
+            if ((exp1 >= 8'd158) &&
+                !(sign1 && exp1 == 8'd158 && mant1 == 23'd0)) begin
+                fcvt_w_result  = sign1 ? 32'h80000000 : 32'h7FFFFFFF;
+                fcvt_w_invalid = 1'b1;
+            end else begin
+                fcvt_w_result = sign1 ? (~cvt_w_magnitude + 32'd1) : cvt_w_magnitude;
+            end
+        end else begin
+            // Unsigned range: 0 through 2^32-1.
+            if (sign1 && exp1 >= 8'd127) begin
+                fcvt_w_result  = 32'd0;
+                fcvt_w_invalid = 1'b1;
+            end else if (exp1 >= 8'd159) begin
+                fcvt_w_result  = 32'hFFFFFFFF;
+                fcvt_w_invalid = 1'b1;
+            end else begin
+                fcvt_w_result = cvt_w_magnitude;
+            end
+        end
+    end
 
     // fcvt.s.w
     wire        int_negative = input1[31] && (funct3 == 3'b000);
@@ -107,15 +145,26 @@ module fpu (
         endcase
     end
 
-    wire [7:0]  fcvt_s_w_exp  = (int_abs == 32'b0) ? 8'b0 : (8'd127 + leading_one);
-    wire [31:0] int_shifted   = (leading_one >= 5'd23) ? (int_abs >> (leading_one - 5'd23))
-                                                       : (int_abs << (5'd23 - leading_one));
-    wire [22:0] fcvt_s_w_mant = int_shifted[22:0];
+    // FCVT.S.W / FCVT.S.WU: integer -> binary32 (round to nearest, ties even).
+    // The leading 1 goes at bit 23. Any shifted-out bits are rounded, not dropped.
+    wire [4:0]  cvt_right_shift = (leading_one > 5'd23) ? (leading_one - 5'd23) : 5'd0;
+    wire [31:0] cvt_aligned_int = (leading_one > 5'd23)
+        ? (int_abs >> cvt_right_shift)
+        : (int_abs << (5'd23 - leading_one));
+    wire [23:0] cvt_sig24 = cvt_aligned_int[23:0];
 
-    wire [31:0] fcvt_s_w_result  = (int_abs == 32'b0) ? 32'h00000000
-                                                       : {int_negative, fcvt_s_w_exp, fcvt_s_w_mant};
-    wire [31:0] fcvt_s_wu_result = (int_abs == 32'b0) ? 32'h00000000
-                                                       : {1'b0, fcvt_s_w_exp, fcvt_s_w_mant};
+    wire cvt_guard = (cvt_right_shift != 5'd0) &&
+        ((int_abs & (32'd1 << (cvt_right_shift - 5'd1))) != 32'd0);
+    wire cvt_sticky = (cvt_right_shift > 5'd1) &&
+        ((int_abs & ((32'd1 << (cvt_right_shift - 5'd1)) - 32'd1)) != 32'd0);
+    wire cvt_round_up = cvt_guard && (cvt_sticky || cvt_sig24[0]);
+    wire [24:0] cvt_rounded_sig = {1'b0, cvt_sig24} + {24'b0, cvt_round_up};
+
+    // The carry means 1.111... rounded to 10.000... => increase exponent.
+    wire [7:0] cvt_float_exp = 8'd127 + {3'b0, leading_one}
+                                    + {7'b0, cvt_rounded_sig[24]};
+    wire [31:0] fcvt_s_w_result = (int_abs == 32'd0)
+        ? 32'd0 : {int_negative, cvt_float_exp, cvt_rounded_sig[22:0]};
 
     // Actull result selector
     always @(*) begin
@@ -144,19 +193,11 @@ module fpu (
                 invalid = 1'b0;
             end
             F5_FCVT_W_S: begin
-                if (is_nan1 || is_inf1) begin
-                    result  = is_nan1 ? 32'h7FFFFFFF : (sign1 ? 32'h80000000 : 32'h7FFFFFFF);
-                    invalid = 1'b1;
-                end else if (is_zero1 || is_denorm1) begin
-                    result  = 32'b0;
-                    invalid = 1'b0;
-                end else begin
-                    result  = (funct3 == 3'b000) ? fcvt_w_s_result : fcvt_wu_s_result;
-                    invalid = 1'b0;
-                end
+                result  = fcvt_w_result;
+                invalid = fcvt_w_invalid;
             end
             F5_FCVT_S_W: begin
-                result  = (funct3 == 3'b000) ? fcvt_s_w_result : fcvt_s_wu_result;
+                result  = fcvt_s_w_result;
                 invalid = 1'b0;
             end
             default: begin

@@ -106,7 +106,11 @@ module fpadder (
     end
 
     // Normalize: carry -> shift right 1; cancellation -> shift left by lz
-    wire [26:0] norm_sig = carry_out ? add_result[27:1] : (add_result[26:0] << lz);
+    wire [26:0] norm_sig =
+    carry_out
+        ? {add_result[27:2],
+           add_result[1] | add_result[0]}
+        : (add_result[26:0] << lz);
     wire [8:0]  norm_exp = carry_out ? ({1'b0, exp_a} + 9'd1)
                                      : ({1'b0, exp_a} - {4'b0, lz});
 
@@ -126,6 +130,7 @@ module fpadder (
 
     wire exp_overflow   = (final_exp >= 9'd255);
     wire is_result_zero = (lz == 5'd27) && !carry_out;
+    wire exp_underflow  = norm_exp[8] || (norm_exp == 9'd0);
 
     always @(*) begin
         invalid = 1'b0;
@@ -136,6 +141,7 @@ module fpadder (
         else if (is_inf1)        result = {sign1, 8'hFF, 23'b0};
         else if (is_inf2)        result = {sign2, 8'hFF, 23'b0};
         else if (is_result_zero) result = (sign1 && sign2) ? NEG_ZERO : POS_ZERO;
+        else if (exp_underflow)  result = {result_sign, 31'b0};
         else if (exp_overflow)   result = {result_sign, 8'hFF, 23'b0};
         else                     result = {result_sign, final_exp[7:0], final_mant};
     end
