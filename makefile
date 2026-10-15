@@ -8,9 +8,9 @@ DEFINES += -DDUMP_MEM
 endif
 
 all:
-	$(CC) $(FLAGS) -o $(EXE) $(SRCS)
+	$(CC) $(FLAGS) -DDUMP_MEM -o $(EXE) $(SRCS) 
 	vvp $(EXE)
-	$(WAVE) cpu.vcd 
+	$(WAVE) cpu.vcd >/dev/null
 	#if you're using surfer, make sure to save the state of the waveform for future runs!!
 
 clean:

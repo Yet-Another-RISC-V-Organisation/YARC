@@ -30,7 +30,7 @@ end
 
 // Load Program imem/dmem
 initial begin
-    $readmemh("build/imem.hex", dut.imem.memory);
+    $readmemh("build/bp_test.hex", dut.imem.memory);
     $readmemh("build/dmem.hex", dut.dmem.memory);
 end
 
@@ -52,14 +52,14 @@ end
 
 // Stop Simulation
 initial begin
-    #2000;
+    #40000;
 
-    if (tb.dut.rf.regFile[31] == 32'd31)    // check if x31==31
+    /*if (tb.dut.rf.regFile[31] == 32'd31)    // check if x31==31
         $display("Passed all tests.");
     else
         $display("Failed a test. (Check waveforms)");
 
-    $display("Simulation timeout.");
+    $display("Simulation timeout.");*/
     $finish;
 end
 

@@ -18,11 +18,18 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     wire [31:0] pc;
     wire [31:0] btb_target;
     wire btb_hit;
+    wire dirp_prediction;
+    wire        pred_redirect = dirp_prediction && btb_hit;                // [BP]
+    wire [31:0] pred_next_IF  = pred_redirect ? btb_target : pc + 4;       // [BP]
+    wire        pc_redirect;                                               // [BP]
+    wire [31:0] pc_target;                                                 // [BP]
+    wire        ex_mispredict;    
 
     // IFID //
     reg [31:0] IFID_pc;
     reg [31:0] IFID_pc_plus4;
     reg [31:0] IFID_instr;
+    reg [31:0] IFID_pred_next;     // [BP]
 
     // ID STAGE //
     
@@ -75,6 +82,7 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     reg IDEX_is_ecall;
     reg IDEX_is_ebreak;
     reg IDEX_is_fence;
+    reg [31:0] IDEX_pred_next;     // [BP]
 
     // EX STAGE //
 
@@ -109,11 +117,16 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
 
     assign next_pc = IDEX_jump                     ? (is_jalr_EX ? jalr_target_EX : branch_target_EX) :
                     (IDEX_branch & branch_cond_EX) ? branch_target_EX :
-                                                    IFID_pc_plus4;
+                                                    IDEX_pc_plus4;         // [BP] was IFID_pc_plus4
 
-    wire flush_IFID = branch_taken;
-    wire flush_IDEX = branch_taken | stall;
+    assign ex_mispredict = (IDEX_branch | IDEX_jump) && (next_pc != IDEX_pred_next);   // [BP]
+
+
+    wire flush_IFID = ex_mispredict;
+    wire flush_IDEX = ex_mispredict | stall;
     assign btb_update_en = IDEX_branch && branch_taken;
+    assign pc_redirect = ex_mispredict | pred_redirect;
+    assign pc_target   = ex_mispredict ? next_pc : btb_target;             // [BP] EX wins
 
     // EXMEM //
     reg [31:0] EXMEM_pc_plus4;
@@ -173,10 +186,12 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
             IFID_pc       <= 32'b0;
             IFID_pc_plus4 <= 32'b0;
             IFID_instr    <= 32'b0;
+            IFID_pred_next <= 32'b0;           // [BP]
         end else if (!stall) begin
             IFID_pc       <= pc;
             IFID_pc_plus4 <= pc + 4;
             IFID_instr    <= instr_IF;
+            IFID_pred_next <= pred_next_IF;    // [BP]
         end
     end
 
@@ -207,6 +222,7 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
             IDEX_is_ebreak     <= 1'b0;
             IDEX_is_ecall      <= 1'b0;
             IDEX_is_fence      <= 1'b0;
+            IDEX_pred_next <= 32'b0;           // [BP]
         end else begin
             IDEX_pc            <= IFID_pc;
             IDEX_pc_plus4      <= IFID_pc_plus4;
@@ -230,7 +246,8 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
             IDEX_opcode        <= opcode_ID;
             IDEX_is_ecall      <= is_ecall_ID;
             IDEX_is_ebreak     <= is_ebreak_ID;
-            IDEX_is_fence      <= is_fence_ID;            
+            IDEX_is_fence      <= is_fence_ID;
+            IDEX_pred_next <= IFID_pred_next;  // [BP]            
         end
     end
 
@@ -298,8 +315,8 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
         .clock_i          (clock),
         .reset_ni         (resetn),
         .stall_i          (stall),
-        .branch_address_i (next_pc),
-        .branch_taken_i   (branch_taken),
+        .branch_address_i (pc_target),         // [BP] was next_pc
+        .branch_taken_i   (pc_redirect),       // [BP] was branch_taken
         .pc_o             (pc)
     );
 
@@ -396,14 +413,24 @@ localparam [31:0] DMEM_BASE = 32'h0fc10000;
     );
 
     btb #(.INDEX_BITS(8)) btbunit(
-        .clock  (clock),
+        .clock (clock),
         .resetn (resetn),
         .pc (pc),
         .update_en (btb_update_en),
         .update_pc (IDEX_pc),
-        .update_target (branch_taken),
+        .update_target (branch_target_EX),
         .hit (btb_hit),
         .target (btb_target) //add jlar later!!!
+    );
+
+    direction_predictor #(.INDEX_BITS(8)) dirp(
+        .clock (clock),
+        .resetn (resetn),
+        .pc (pc),
+        .prediction (dirp_prediction),
+        .update_en (IDEX_branch),
+        .update_pc (IDEX_pc),
+        .was_it_taken (branch_taken)
     );
 
 
